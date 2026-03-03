@@ -17,11 +17,21 @@ package "Secsgem.Core" {
       Passive
     }
 
-    ' E37: NOT CONNECTED -> NOT SELECTED -> SELECTED
+    ' E37 §7 - Hierarchical state machine:
+    '   NOT CONNECTED
+    '   CONNECTED (superstate - TCP exists)
+    '     NOT SELECTED  (SELECT not yet done)
+    '     SELECTED      (SELECT done; data messages allowed)
+    ' Leaf states are modelled here; use IsConnected() extension
+    ' to test the CONNECTED superstate.
     enum HsmsConnectionState {
       NotConnected
       NotSelected
       Selected
+    }
+
+    class HsmsConnectionStateExtensions <<static>> {
+      + {static} bool IsConnected(HsmsConnectionState state)
     }
 
     interface IHsmsConnection {
@@ -33,7 +43,7 @@ package "Secsgem.Core" {
       + Task CloseAsync()
 
       ' Raw data send (used by SecsSession)
-      + Task SendAsync(byte[] data)
+      + Task SendRawAsync(ReadOnlyMemory data)
 
       ' HSMS control messages (E37)
       + Task SendSelectRequestAsync()
@@ -43,9 +53,9 @@ package "Secsgem.Core" {
       + Task SendSeparateRequestAsync()
 
       ' Events
-      + event OnDataReceived(byte[] data)
-      + event OnStateChanged(HsmsConnectionState state)
-      + event OnError(Exception error)
+      + event DataReceived : EventHandler
+      + event StateChanged : EventHandler
+      + event ErrorOccurred : EventHandler
     }
 
     class HsmsConnectionOptions {
@@ -53,6 +63,7 @@ package "Secsgem.Core" {
       + int Port
       + HsmsConnectionMode Mode
       ' E37 timers (seconds)
+      + int T3_ReplyTimeout
       + int T5_ConnectSeparationTimeout
       + int T6_ControlTimeout
       + int T7_NotSelectedTimeout
@@ -180,7 +191,7 @@ package "Secsgem.Core" {
     }
 
     class SecsSessionOptions {
-      ' E5 §6.5 / E37 T3 reply timeout
+      ' T3 reply timeout override (defaults to HsmsConnectionOptions.T3)
       + TimeSpan TransactionTimeout
       ' E5 §8.4 conversation timeout
       + TimeSpan ConversationTimeout

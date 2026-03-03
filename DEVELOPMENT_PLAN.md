@@ -18,15 +18,15 @@
 
 ## 🔲 Phase 1 – HSMS Transport (E37)
 
-- [ ] `IHsmsConnection` interface
-- [ ] `HsmsConnection` – passive (equipment) TCP listener
-- [ ] `HsmsConnection` – active (host) TCP connector
-- [ ] HSMS state machine: `NotConnected → NotSelected → Selected`
-- [ ] HSMS control messages: SELECT, DESELECT, LINKTEST, SEPARATE
-- [ ] Timers: T5, T6, T7, T8
-- [ ] Raw message framing: encode/decode HSMS header (10 bytes)
-- [ ] Basic send/receive loop
-- [ ] **Demo**: Equipment ↔ Host HSMS connect + LINKTEST
+- [x] `IHsmsConnection` interface
+- [x] `HsmsConnection` – passive (equipment) TCP listener
+- [x] `HsmsConnection` – active (host) TCP connector
+- [x] HSMS state machine: `NotConnected → NotSelected → Selected`
+- [x] HSMS control messages: SELECT, DESELECT, LINKTEST, SEPARATE
+- [x] Timers: T5, T6, T7, T8
+- [x] Raw message framing: encode/decode HSMS header (10 bytes)
+- [x] Basic send/receive loop
+- [x] **Demo**: Equipment ↔ Host HSMS connect + LINKTEST
 
 ---
 
