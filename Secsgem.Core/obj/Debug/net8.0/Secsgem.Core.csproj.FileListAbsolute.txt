@@ -1,0 +1,11 @@
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\bin\Debug\net8.0\Secsgem.Core.deps.json
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\bin\Debug\net8.0\Secsgem.Core.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\bin\Debug\net8.0\Secsgem.Core.pdb
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\Secsgem.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\Secsgem.Core.AssemblyInfoInputs.cache
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\Secsgem.Core.AssemblyInfo.cs
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\Secsgem.Core.csproj.CoreCompileInputs.cache
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\Secsgem.Core.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\refint\Secsgem.Core.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\Secsgem.Core.pdb
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Core\obj\Debug\net8.0\ref\Secsgem.Core.dll

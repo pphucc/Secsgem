@@ -1,0 +1,15 @@
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\bin\Debug\net8.0\Secsgem.Gem.deps.json
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\bin\Debug\net8.0\Secsgem.Gem.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\bin\Debug\net8.0\Secsgem.Gem.pdb
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\bin\Debug\net8.0\Secsgem.Core.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\bin\Debug\net8.0\Secsgem.Core.pdb
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.csproj.AssemblyReference.cache
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.AssemblyInfoInputs.cache
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.AssemblyInfo.cs
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.csproj.CoreCompileInputs.cache
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem..4D8A2DCA.Up2Date
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\refint\Secsgem.Gem.dll
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\Secsgem.Gem.pdb
+C:\Users\PhucTruong\source\repos\Personal\Secsgem\Secsgem.Gem\obj\Debug\net8.0\ref\Secsgem.Gem.dll

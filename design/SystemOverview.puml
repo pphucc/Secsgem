@@ -1,0 +1,90 @@
+@startuml SystemOverview
+
+title Secsgem – Overall System Overview
+
+' ============================================================
+' External Environment
+' ============================================================
+actor HostUser as HostUser
+actor EquipmentOperator as EqOperator
+
+rectangle "Factory Network\n(HSMS over TCP/IP)" as Network {
+}
+
+' ============================================================
+' Host Side
+' ============================================================
+package "Host Application" as HostApp {
+  component "Your Host App\n(Business Logic)" as HostBiz
+}
+
+package "Secsgem Library\n(on Host)" as SecsgemHost {
+  package "Secsgem.Gem" as GemHostPkg {
+    component "GemHostSession\n(IGemHost)" as GemHostSession
+  }
+
+  package "Secsgem.Core" as CoreHostPkg {
+    component "SECS Session\n(ISecsSession)" as SecsSessionHost
+    component "HSMS Connection\n(IHsmsConnection)" as HsmsHost
+  }
+}
+
+' ============================================================
+' Equipment Side
+' ============================================================
+package "Equipment Application" as EqApp {
+  component "Equipment Control\n(PLC/Equipment SW)" as EqControl
+}
+
+package "Secsgem Library\n(on Equipment)" as SecsgemEq {
+  package "Secsgem.Gem" as GemEqPkg {
+    component "GemEquipmentSession\n(IGemEquipment)" as GemEquipmentSession
+  }
+
+  package "Secsgem.Core" as CoreEqPkg {
+    component "SECS Session\n(ISecsSession)" as SecsSessionEq
+    component "HSMS Connection\n(IHsmsConnection)" as HsmsEq
+  }
+}
+
+' ============================================================
+' Standards / Documentation Context
+' ============================================================
+node "SEMI Standards\n(reference only)" as Standards {
+  artifact "E5 – SECS-II\n(message content)" as E5
+  artifact "E37 – HSMS\n(transport)" as E37
+  artifact "E30 – GEM\n(state models, alarms,\nevents, reports, RCMDs)" as E30
+  artifact "GEM300 / Jobs\n(E40, E87, E90, E94, ...)" as GEM300
+}
+
+' ============================================================
+' Relationships – Host Side
+' ============================================================
+HostUser --> HostBiz : Operates UI / business flows
+HostBiz --> GemHostSession : Use GEM API\n(variables, events, RCMDs)
+GemHostSession --> SecsSessionHost : Send/receive SECS messages
+SecsSessionHost --> HsmsHost : Encode/decode + session\nuses HSMS transport
+HsmsHost --> Network : HSMS over TCP/IP
+
+' ============================================================
+' Relationships – Equipment Side
+' ============================================================
+Network --> HsmsEq : HSMS over TCP/IP
+HsmsEq --> SecsSessionEq : Deliver/receive SECS blocks
+SecsSessionEq --> GemEquipmentSession : Map SxFy to GEM behavior
+GemEquipmentSession --> EqControl : Invoke equipment-specific\nlogic (start, stop, recipes, etc.)
+EquipmentOperator --> EqControl : Local control / HMI
+
+' ============================================================
+' Standards as Design Basis (no runtime wiring)
+' ============================================================
+E5 .. SecsSessionHost : Defines\nmessage structure
+E5 .. SecsSessionEq
+E37 .. HsmsHost : Defines HSMS\nbehavior
+E37 .. HsmsEq
+E30 .. GemHostSession : Defines GEM\nservices & state models
+E30 .. GemEquipmentSession
+GEM300 .. GemEquipmentSession : Future\nGEM300 extension
+
+@enduml
+

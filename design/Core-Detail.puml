@@ -1,0 +1,219 @@
+@startuml CoreDetail
+
+title Secsgem.Core - Detailed Design (E5 SECS-II + E37 HSMS)
+
+' ============================================================
+' Namespaces / Packages
+' ============================================================
+package "Secsgem.Core" {
+
+  ' ----------------------------------------------------------
+  ' Transport (HSMS over TCP/IP - OSI 5 Session / E37)
+  ' ----------------------------------------------------------
+  package Transport {
+
+    enum HsmsConnectionMode {
+      Active
+      Passive
+    }
+
+    ' E37: NOT CONNECTED -> NOT SELECTED -> SELECTED
+    enum HsmsConnectionState {
+      NotConnected
+      NotSelected
+      Selected
+    }
+
+    interface IHsmsConnection {
+      + Mode : HsmsConnectionMode
+      + State : HsmsConnectionState
+
+      ' Connection lifecycle
+      + Task OpenAsync()
+      + Task CloseAsync()
+
+      ' Raw data send (used by SecsSession)
+      + Task SendAsync(byte[] data)
+
+      ' HSMS control messages (E37)
+      + Task SendSelectRequestAsync()
+      + Task SendSelectResponseAsync(byte headerByte)
+      + Task SendDeselectRequestAsync()
+      + Task SendLinktestRequestAsync()
+      + Task SendSeparateRequestAsync()
+
+      ' Events
+      + event OnDataReceived(byte[] data)
+      + event OnStateChanged(HsmsConnectionState state)
+      + event OnError(Exception error)
+    }
+
+    class HsmsConnectionOptions {
+      + string Host
+      + int Port
+      + HsmsConnectionMode Mode
+      ' E37 timers (seconds)
+      + int T5_ConnectSeparationTimeout
+      + int T6_ControlTimeout
+      + int T7_NotSelectedTimeout
+      + int T8_NetworkIntercharacterTimeout
+    }
+
+    class HsmsConnection implements IHsmsConnection {
+      - HsmsConnectionOptions _options
+      - Socket _socket
+    }
+
+    HsmsConnection --> HsmsConnectionOptions
+  }
+
+  ' ----------------------------------------------------------
+  ' SECS-II Data & Messages (OSI 6 Presentation / E5)
+  ' ----------------------------------------------------------
+  package Secs {
+
+    ' E5 §9 - Item format codes
+    enum SecsFormat {
+      LIST
+      B
+      BOOLEAN
+      A
+      J
+      I1
+      I2
+      I4
+      I8
+      U1
+      U2
+      U4
+      U8
+      F4
+      F8
+    }
+
+    abstract class SecsItem {
+      + SecsFormat Format
+      + int Length
+    }
+
+    class SecsList {
+      + List<SecsItem> Items
+    }
+    class SecsBinary
+    class SecsBoolean
+    class SecsAscii
+    class SecsJis
+    class SecsInt1
+    class SecsInt2
+    class SecsInt4
+    class SecsInt8
+    class SecsUint1
+    class SecsUint2
+    class SecsUint4
+    class SecsUint8
+    class SecsFloat4
+    class SecsFloat8
+
+    SecsItem <|-- SecsList
+    SecsItem <|-- SecsBinary
+    SecsItem <|-- SecsBoolean
+    SecsItem <|-- SecsAscii
+    SecsItem <|-- SecsJis
+    SecsItem <|-- SecsInt1
+    SecsItem <|-- SecsInt2
+    SecsItem <|-- SecsInt4
+    SecsItem <|-- SecsInt8
+    SecsItem <|-- SecsUint1
+    SecsItem <|-- SecsUint2
+    SecsItem <|-- SecsUint4
+    SecsItem <|-- SecsUint8
+    SecsItem <|-- SecsFloat4
+    SecsItem <|-- SecsFloat8
+
+    ' SecsItem carries a format code
+    SecsItem --> SecsFormat
+
+    ' E5 §6.4 - Message header fields
+    class SecsHeader {
+      + ushort DeviceId
+      + byte Stream
+      + byte Function
+      + bool ReplyRequired
+      + uint SystemBytes
+    }
+
+    ' E5 §6.2 - A complete SECS-II message
+    class SecsMessage {
+      + SecsHeader Header
+      + SecsItem Body
+    }
+
+    SecsMessage --> SecsHeader
+    SecsMessage --> SecsItem : body 0..1
+
+    ' E5 codec: encode/decode between SecsMessage and raw bytes
+    interface ISecsCodec {
+      + byte[] Encode(SecsMessage message)
+      + SecsMessage Decode(byte[] buffer)
+    }
+
+    class SecsCodec implements ISecsCodec {
+    }
+
+    SecsCodec --> SecsMessage
+    SecsCodec --> SecsItem
+  }
+
+  ' ----------------------------------------------------------
+  ' Session & Transactions (E5 §8 transactions + HSMS sessions)
+  ' ----------------------------------------------------------
+  package Session {
+
+    ' E5 §8.2 - A primary message + optional secondary (reply)
+    class SecsTransaction {
+      + uint SystemBytes
+      + SecsMessage Primary
+      + SecsMessage Secondary
+      + bool IsReplyExpected
+      + bool IsCompleted
+      + DateTime CreatedAt
+    }
+
+    class SecsSessionOptions {
+      ' E5 §6.5 / E37 T3 reply timeout
+      + TimeSpan TransactionTimeout
+      ' E5 §8.4 conversation timeout
+      + TimeSpan ConversationTimeout
+    }
+
+    interface ISecsSession {
+      + Task StartAsync()
+      + Task StopAsync()
+
+      ' Primary with reply expected - waits for secondary
+      + Task<SecsMessage> SendAndWaitAsync(SecsMessage primary, TimeSpan timeout)
+
+      ' Primary with no reply (W-bit = 0) or secondary (reply) message
+      + Task SendAsync(SecsMessage message)
+
+      ' Inbound unsolicited primary messages
+      + event OnMessageReceived(SecsMessage message)
+      + event OnTransactionTimeout(SecsTransaction transaction)
+    }
+
+    class SecsSession implements ISecsSession {
+      - IHsmsConnection _connection
+      - ISecsCodec _codec
+      - SecsSessionOptions _options
+    }
+  }
+}
+
+' ------------------------------------------------------------
+' Cross-package relationships
+' ------------------------------------------------------------
+Secsgem.Core.Session.SecsSession --> Secsgem.Core.Transport.IHsmsConnection
+Secsgem.Core.Session.SecsSession --> Secsgem.Core.Secs.ISecsCodec
+Secsgem.Core.Session.SecsSession --> Secsgem.Core.Session.SecsTransaction
+
+@enduml

@@ -1,0 +1,375 @@
+@startuml GemEquipmentDetail
+
+title Secsgem.Gem - Detailed Design (E30 GEM Equipment Side)
+
+' ============================================================
+' Based strictly on SEMI E30 (E030-00-0125)
+' OSI 7 - Application Layer
+'
+' GEM Capabilities covered:
+'   - Establish Communications    (S1F13/F14)
+'   - Control State               (S1F1, S1F15, S1F17)
+'   - Event Notification          (S6F11)
+'   - Dynamic Event Report Config (S2F33/F34, S2F35/F36, S2F37/F38)
+'   - Variable Data Collection    (S1F3/F4, S6F19/F20)
+'   - Trace Data Collection       (S2F23/F24, S6F1/F2)
+'   - Status Data Collection      (S1F3/F4)
+'   - Alarm Management            (S5F1/F2, S5F3/F4)
+'   - Remote Control              (S2F41/F42)
+'   - Equipment Constants         (S2F13/F14, S2F15/F16)
+'   - Process Program Management  (S7Fx)
+'   - Error Messages              (S9Fx)
+'   - Clock                       (S2F17/F18)
+'   - Limits Monitoring           (S2F45/F46) [future]
+'   - Spooling                    [future]
+'
+' Depends on: Secsgem.Core (ISecsSession, SecsFormat, SecsMessage)
+' ============================================================
+
+package "Secsgem.Gem" {
+
+  ' ----------------------------------------------------------
+  ' State Models (E30 §6.4 and §6.5)
+  ' ----------------------------------------------------------
+  package "StateModels" {
+
+    interface IStateModel {
+      + string Name
+      + string CurrentState
+      + event OnStateChanged(string from, string to)
+      + void Trigger(string triggerName)
+    }
+
+    ' E30 §6.4 - Communication State Model
+    ' States: DISABLED, ENABLED
+    '   ENABLED substates:
+    '     NOT COMMUNICATING
+    '       EQUIPMENT-INITIATED CONNECT: WAIT CRA, WAIT DELAY
+    '       HOST-INITIATED CONNECT: WAIT CR FROM HOST
+    '     COMMUNICATING
+    class CommunicationStateModel {
+      + bool IsEnabled
+      + bool IsCommunicating
+      + int EstablishCommunicationsTimeout
+    }
+
+    ' E30 §6.5 - Control State Model
+    ' States: OFF-LINE, ON-LINE
+    '   OFF-LINE substates: EQUIPMENT OFF-LINE, ATTEMPT ON-LINE, HOST OFF-LINE
+    '   ON-LINE substates:  LOCAL, REMOTE
+    class ControlStateModel {
+      + bool IsOnline
+      + bool IsRemote
+    }
+
+    IStateModel <|.. CommunicationStateModel
+    IStateModel <|.. ControlStateModel
+  }
+
+  ' ----------------------------------------------------------
+  ' Model - GEM entity definitions (static metadata / E30 §7)
+  ' Note: runtime state (IsSet, IsEnabled) lives in services,
+  '       not in definition objects.
+  ' ----------------------------------------------------------
+  package "Model" {
+
+    ' E30 §7.4 - Equipment Constants (ECID)
+    class EquipmentConstantDefinition <<ECID>> {
+      + int ECID
+      + string Name
+      + string Format
+      + string Min
+      + string Max
+      + string Default
+      + string Units
+    }
+
+    ' E30 §7.3 - Status Variables (SVID) - always valid, read-only by host
+    class StatusVariableDefinition <<SVID>> {
+      + int SVID
+      + string Name
+      + string Format
+      + string Units
+    }
+
+    ' E30 §7.3 - Data Variables (DVID) - valid only at collection event time
+    class DataVariableDefinition <<DVID>> {
+      + int DVID
+      + string Name
+      + string Format
+      + string Units
+    }
+
+    ' E30 §7.3.1 - Collection Events (CEID)
+    ' IsEnabled is runtime state managed by DataCollectionService
+    class CollectionEventDefinition <<CEID>> {
+      + int CEID
+      + string Name
+    }
+
+    ' E30 §7.3.1 - Reports (RPTID -> list of variable IDs)
+    class ReportDefinition <<RPTID>> {
+      + int RPTID
+      + string Name
+      + string VariableIds
+    }
+
+    ' E30 §7.3.1 - Event-to-Report linkage (dynamic, managed at runtime)
+    class EventReportLink {
+      + int CEID
+      + string RPTIDs
+    }
+
+    ' E30 §7.3.2 - Trace Request (TRID)
+    class TraceRequest <<TRID>> {
+      + int TRID
+      + int SamplePeriodMs
+      + int TotalSamples
+      + string SVIDs
+    }
+
+    ' E30 §7.5 - Alarms (ALID)
+    ' IsSet is runtime state managed by AlarmService
+    class AlarmDefinition <<ALID>> {
+      + int ALID
+      + string Name
+      + string Text
+      + int Severity
+      + int SetCEID
+      + int ClearCEID
+    }
+
+    ' E30 §7.5.7 - Remote Commands (RCMD)
+    class RemoteCommandDefinition <<RCMD>> {
+      + string RCMD
+      + string Description
+    }
+
+    ' E30 §7.5.7 - Remote Command Parameters (CPNAME)
+    class RemoteCommandParameterDefinition <<CPNAME>> {
+      + string CPNAME
+      + string Format
+      + string ValidValues
+    }
+
+    ' E30 §7.7 - Process Programs (PPID)
+    class ProcessProgramDefinition <<PPID>> {
+      + string PPID
+      + byte[] Body
+    }
+
+    CollectionEventDefinition "1" --> "*" EventReportLink
+    EventReportLink "*" --> "*" ReportDefinition
+    ReportDefinition --> StatusVariableDefinition : references SVIDs
+    ReportDefinition --> DataVariableDefinition : references DVIDs
+    AlarmDefinition --> CollectionEventDefinition : setEvent
+    AlarmDefinition --> CollectionEventDefinition : clearEvent
+    RemoteCommandDefinition "1" --> "*" RemoteCommandParameterDefinition
+  }
+
+  ' ----------------------------------------------------------
+  ' Services - one per GEM capability (E30 §7)
+  ' ----------------------------------------------------------
+  package "Services" {
+
+    ' E30 §7.3.1 - Event Notification + Dynamic Report Config
+    ' Manages runtime enable/disable state of events
+    ' S6F11: send event report
+    ' S2F33/F34: define/delete reports
+    ' S2F35/F36: link events to reports
+    ' S2F37/F38: enable/disable events
+    class DataCollectionService {
+      + void DefineReport(ReportDefinition report)
+      + void DeleteReport(int rptid)
+      + void LinkEventToReports(int ceid, string rptids)
+      + void UnlinkEventFromReports(int ceid)
+      + void EnableEvent(int ceid)
+      + void DisableEvent(int ceid)
+      + void EnableAllEvents()
+      + void DisableAllEvents()
+      + void RaiseEvent(int ceid)
+      + bool IsEventEnabled(int ceid)
+    }
+
+    ' E30 §7.3.2 - Trace Data Collection
+    ' S2F23/F24: host requests trace
+    ' S6F1/F2:   equipment sends trace data
+    class TraceService {
+      + void StartTrace(TraceRequest request)
+      + void StopTrace(int trid)
+    }
+
+    ' E30 §7.5 - Alarm Management
+    ' Manages runtime IsSet state per ALID
+    ' On set/clear: internally raises SetCEID / ClearCEID via DataCollectionService
+    ' S5F1:    equipment sends alarm report
+    ' S5F3/F4: host requests alarm list
+    class AlarmService {
+      + void SetAlarm(int alid)
+      + void ClearAlarm(int alid)
+      + bool IsAlarmSet(int alid)
+      + void GetAlarmList()
+    }
+
+    ' E30 §7.5.7 - Remote Control
+    ' S2F41/F42: host sends remote command, equipment acknowledges
+    class RemoteCommandService {
+      + void Register(RemoteCommandDefinition definition)
+      + event OnRemoteCommand(string rcmd, string cpnames, string cpvals)
+    }
+
+    ' E30 §7.4 - Equipment Constants
+    ' S2F13/F14: host requests EC values
+    ' S2F15/F16: host sets EC values
+    class EquipmentConstantService {
+      + string GetValue(int ecid)
+      + void SetValue(int ecid, string value)
+      + void GetDefinitions()
+    }
+
+    ' E30 §7.3 - Status Variable access
+    ' S1F3/F4:   host requests SV values
+    ' S6F19/F20: host requests DV values
+    class StatusVariableService {
+      + string GetValue(int svid)
+      + void SetValue(int svid, string value)
+      + void GetDefinitions()
+    }
+
+    ' E30 §7.7 - Process Program Management
+    ' S7F1/F2:   host sends PP
+    ' S7F5/F6:   host requests PP
+    ' S7F17/F18: host deletes PP
+    ' S7F19/F20: host requests PP directory
+    class ProcessProgramService {
+      + void Store(ProcessProgramDefinition pp)
+      + ProcessProgramDefinition Load(string ppid)
+      + void Delete(string ppid)
+      + void GetDirectory()
+    }
+
+    ' E30 §7.10 - Clock
+    ' S2F17/F18: host requests / sets equipment clock
+    class ClockService {
+      + string GetTime()
+      + void SetTime(string clockValue)
+    }
+
+    ' E30 §7.3.3 - Limits Monitoring [FUTURE]
+    ' S2F45/F46: host defines variable limits
+    ' S6F21:     equipment sends limits-exceeded event report
+    class LimitsMonitoringService <<future>> {
+    }
+
+    ' Internal: alarm set/clear must raise CEIDs via DataCollectionService
+    AlarmService --> DataCollectionService : raises SetCEID / ClearCEID
+
+    DataCollectionService --> CollectionEventDefinition
+    DataCollectionService --> ReportDefinition
+    DataCollectionService --> EventReportLink
+    TraceService --> TraceRequest
+    AlarmService --> AlarmDefinition
+    RemoteCommandService --> RemoteCommandDefinition
+    EquipmentConstantService --> EquipmentConstantDefinition
+    StatusVariableService --> StatusVariableDefinition
+    ProcessProgramService --> ProcessProgramDefinition
+  }
+
+  ' ----------------------------------------------------------
+  ' Configuration - full static equipment metadata (E30 §7)
+  ' ----------------------------------------------------------
+  package "Config" {
+
+    class GemConfiguration {
+      + int DeviceId
+      + string EquipmentConstants
+      + string StatusVariables
+      + string DataVariables
+      + string CollectionEvents
+      + string Reports
+      + string EventReportLinks
+      + string Alarms
+      + string RemoteCommands
+    }
+
+    interface IGemConfigProvider {
+      + GemConfiguration Load(string path)
+    }
+
+    class JsonGemConfigProvider
+    class XmlGemConfigProvider
+
+    IGemConfigProvider <|.. JsonGemConfigProvider
+    IGemConfigProvider <|.. XmlGemConfigProvider
+    IGemConfigProvider --> GemConfiguration
+  }
+
+  ' ----------------------------------------------------------
+  ' Core - GemEquipmentSession top-level facade (E30 §7)
+  ' Depends on Secsgem.Core.Session.ISecsSession
+  ' ----------------------------------------------------------
+  package "Core" {
+
+    note as CoreDep
+      GemEquipmentSession depends on
+      Secsgem.Core.Session.ISecsSession
+      for all SECS-II message exchange.
+    end note
+
+    interface IGemEquipment {
+      + GemConfiguration Configuration
+      + CommunicationStateModel CommunicationState
+      + ControlStateModel ControlState
+
+      + Task StartAsync()
+      + Task StopAsync()
+
+      ' Equipment code API
+      + void SetStatusVariable(int svid, string value)
+      + string GetEquipmentConstant(int ecid)
+      + void RaiseEvent(int ceid)
+      + void SetAlarm(int alid)
+      + void ClearAlarm(int alid)
+      + void SendTerminalMessage(int tid, string text)
+
+      ' Application hooks
+      + event OnRemoteCommand(string rcmd, string params)
+      + event OnEquipmentConstantChanged(int ecid, string newValue)
+      + event OnProcessProgramReceived(string ppid)
+    }
+
+    class GemEquipmentSession {
+      - ISecsSession _secsSession
+      - GemConfiguration _config
+      - CommunicationStateModel _communicationState
+      - ControlStateModel _controlState
+      - AlarmService _alarmService
+      - DataCollectionService _dataCollectionService
+      - TraceService _traceService
+      - RemoteCommandService _remoteCommandService
+      - EquipmentConstantService _ecService
+      - StatusVariableService _svService
+      - ProcessProgramService _ppService
+      - ClockService _clockService
+    }
+
+    IGemEquipment <|.. GemEquipmentSession
+
+    GemEquipmentSession --> CommunicationStateModel
+    GemEquipmentSession --> ControlStateModel
+
+    GemEquipmentSession --> AlarmService
+    GemEquipmentSession --> DataCollectionService
+    GemEquipmentSession --> TraceService
+    GemEquipmentSession --> RemoteCommandService
+    GemEquipmentSession --> EquipmentConstantService
+    GemEquipmentSession --> StatusVariableService
+    GemEquipmentSession --> ProcessProgramService
+    GemEquipmentSession --> ClockService
+
+    GemEquipmentSession --> IGemConfigProvider
+    GemEquipmentSession --> GemConfiguration
+  }
+}
+
+@enduml

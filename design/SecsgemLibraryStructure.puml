@@ -1,0 +1,192 @@
+@startuml SecsgemLibraryStructure
+
+title Secsgem - Library Structure Overview (Equipment Scope)
+
+' OSI layer alignment (see OSI-Mapping.md)
+'   OSI 7 Application  -> Secsgem.Gem               (E30 GEM)
+'   OSI 6 Presentation -> Secsgem.Core / Secs        (E5 SECS-II)
+'   OSI 5 Session      -> Secsgem.Core / Transport + Session (E37 HSMS)
+'   OSI 4 Transport    -> TCP/IP (outside library)
+
+' ============================================================
+' Secsgem.Core  (OSI 5 + OSI 6)
+' ============================================================
+package "Secsgem.Core" {
+
+  package "Transport" <<OSI 5 - HSMS E37>> {
+    enum HsmsConnectionMode
+    enum HsmsConnectionState
+    class HsmsConnectionOptions
+    interface IHsmsConnection
+    class HsmsConnection
+
+    IHsmsConnection <|.. HsmsConnection
+    HsmsConnection --> HsmsConnectionOptions
+  }
+
+  package "Secs" <<OSI 6 - SECS-II E5>> {
+    enum SecsFormat
+
+    abstract class SecsItem
+    class SecsList
+    class SecsBinary
+    class SecsBoolean
+    class SecsAscii
+    class SecsJis
+    class SecsInt1
+    class SecsInt2
+    class SecsInt4
+    class SecsInt8
+    class SecsUint1
+    class SecsUint2
+    class SecsUint4
+    class SecsUint8
+    class SecsFloat4
+    class SecsFloat8
+
+    SecsItem <|-- SecsList
+    SecsItem <|-- SecsBinary
+    SecsItem <|-- SecsBoolean
+    SecsItem <|-- SecsAscii
+    SecsItem <|-- SecsJis
+    SecsItem <|-- SecsInt1
+    SecsItem <|-- SecsInt2
+    SecsItem <|-- SecsInt4
+    SecsItem <|-- SecsInt8
+    SecsItem <|-- SecsUint1
+    SecsItem <|-- SecsUint2
+    SecsItem <|-- SecsUint4
+    SecsItem <|-- SecsUint8
+    SecsItem <|-- SecsFloat4
+    SecsItem <|-- SecsFloat8
+
+    SecsItem --> SecsFormat
+
+    class SecsHeader
+    class SecsMessage
+
+    SecsMessage --> SecsHeader
+    SecsMessage --> SecsItem : body 0..1
+
+    interface ISecsCodec
+    class SecsCodec
+
+    ISecsCodec <|.. SecsCodec
+    SecsCodec --> SecsMessage
+  }
+
+  package "Session" <<OSI 5 - Transactions E5>> {
+    class SecsTransaction
+    class SecsSessionOptions
+    interface ISecsSession
+    class SecsSession
+
+    ISecsSession <|.. SecsSession
+    SecsSession --> IHsmsConnection
+    SecsSession --> ISecsCodec
+    SecsSession --> SecsSessionOptions
+    SecsSession --> SecsTransaction
+  }
+}
+
+' ============================================================
+' Secsgem.Gem  (OSI 7 - Equipment side only)
+' ============================================================
+package "Secsgem.Gem" <<OSI 7 - GEM E30 Equipment>> {
+
+  package "StateModels" {
+    interface IStateModel
+    class CommunicationStateModel
+    class ControlStateModel
+
+    IStateModel <|.. CommunicationStateModel
+    IStateModel <|.. ControlStateModel
+  }
+
+  package "Model" {
+    class EquipmentConstantDefinition <<ECID>>
+    class StatusVariableDefinition <<SVID>>
+    class DataVariableDefinition <<DVID>>
+    class CollectionEventDefinition <<CEID>>
+    class ReportDefinition <<RPTID>>
+    class AlarmDefinition <<ALID>>
+    class RemoteCommandDefinition <<RCMD>>
+    class RemoteCommandParameterDefinition <<CPNAME>>
+
+    CollectionEventDefinition --> ReportDefinition
+    ReportDefinition --> StatusVariableDefinition
+    ReportDefinition --> DataVariableDefinition
+    RemoteCommandDefinition --> RemoteCommandParameterDefinition
+  }
+
+  package "Services" {
+    class AlarmService
+    class DataCollectionService
+    class TraceService
+    class RemoteCommandService
+
+    DataCollectionService --> CollectionEventDefinition
+    DataCollectionService --> ReportDefinition
+    AlarmService --> AlarmDefinition
+    RemoteCommandService --> RemoteCommandDefinition
+  }
+
+  package "Config" {
+    class GemConfiguration
+    interface IGemConfigProvider
+    class JsonGemConfigProvider
+    class XmlGemConfigProvider
+
+    IGemConfigProvider <|.. JsonGemConfigProvider
+    IGemConfigProvider <|.. XmlGemConfigProvider
+    IGemConfigProvider --> GemConfiguration
+
+    GemConfiguration --> EquipmentConstantDefinition
+    GemConfiguration --> StatusVariableDefinition
+    GemConfiguration --> DataVariableDefinition
+    GemConfiguration --> CollectionEventDefinition
+    GemConfiguration --> ReportDefinition
+    GemConfiguration --> AlarmDefinition
+    GemConfiguration --> RemoteCommandDefinition
+  }
+
+  package "Core" {
+    interface IGemEquipment
+    class GemEquipmentSession
+
+    IGemEquipment <|.. GemEquipmentSession
+
+    GemEquipmentSession --> ISecsSession
+    GemEquipmentSession --> CommunicationStateModel
+    GemEquipmentSession --> ControlStateModel
+    GemEquipmentSession --> AlarmService
+    GemEquipmentSession --> DataCollectionService
+    GemEquipmentSession --> TraceService
+    GemEquipmentSession --> RemoteCommandService
+    GemEquipmentSession --> IGemConfigProvider
+  }
+}
+
+' ============================================================
+' Secsgem.Samples
+' ============================================================
+package "Secsgem.Samples" {
+  class SampleEquipmentApp
+  SampleEquipmentApp --> IGemEquipment
+}
+
+' ============================================================
+' Secsgem.Tests
+' ============================================================
+package "Secsgem.Tests" {
+  class FakeHsmsConnection
+  class FakeSecsCodec
+}
+
+' ============================================================
+' Entry point
+' ============================================================
+class "EquipmentApplication" <<external>>
+"EquipmentApplication" --> IGemEquipment
+
+@enduml
