@@ -8,22 +8,22 @@ namespace Secsgem.Samples;
 /// </summary>
 internal static class LoopbackDemo
 {
-    public static async Task RunAsync(int port, bool logRawFrames, CancellationToken ct)
+    public static async Task RunAsync(string address, int port, bool logRawFrames, CancellationToken ct)
     {
-        Console.WriteLine($"[Loopback] Equipment (Passive) on port {port}");
-        Console.WriteLine($"[Loopback] Host (Active) → 127.0.0.1:{port}");
+        Console.WriteLine($"[Loopback] Equipment on {address}:{port}");
+        Console.WriteLine($"[Loopback] Host → {address}:{port}");
         Console.WriteLine();
 
         var equipmentOptions = new HsmsConnectionOptions
         {
-            Host = "127.0.0.1",
+            LocalAddress = address,
             Port = port,
             Mode = HsmsConnectionMode.Passive
         };
 
         var hostOptions = new HsmsConnectionOptions
         {
-            Host = "127.0.0.1",
+            RemoteAddress = address,
             Port = port,
             Mode = HsmsConnectionMode.Active,
             T5_ConnectSeparationTimeout = 2

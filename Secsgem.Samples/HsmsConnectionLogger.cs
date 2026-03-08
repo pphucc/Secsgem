@@ -45,7 +45,7 @@ internal sealed class HsmsConnectionLogger : IHsmsConnection, IAsyncDisposable
     public event EventHandler<Exception>?            ErrorOccurred { add => _inner.ErrorOccurred += value; remove => _inner.ErrorOccurred -= value; }
 
     private void OnStateChanged(object? sender, HsmsConnectionState state)
-        => Console.WriteLine($"State → {state}");
+        => Console.WriteLine($"{_name} → {state}");
 
     private void OnDataReceived(object? sender, ReadOnlyMemory<byte> data)
     {

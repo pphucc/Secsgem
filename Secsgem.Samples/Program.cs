@@ -16,22 +16,23 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
 string mode   = Arg(args, 0, "loopback");
 string remote = ArgNamed(args, "--host",     "127.0.0.1");
-int    port   = int.Parse(ArgNamed(args, "--port",     "5000"));
-int    lt     = int.Parse(ArgNamed(args, "--linktest", "5"));
 bool   raw    = Array.Exists(args, a => a == "--raw");
+
+var address = "127.0.0.1";
+var port = 5000;
 
 switch (mode.ToLowerInvariant())
 {
     case "loopback":
-        await LoopbackDemo.RunAsync(port, raw, cts.Token);
+        await LoopbackDemo.RunAsync(address, port, raw, cts.Token);
         break;
 
     case "equipment":
-        await StandaloneDemo.RunEquipmentAsync(port, raw, cts.Token);
+        await StandaloneDemo.RunEquipmentAsync(address, port, raw, cts.Token);
         break;
 
     case "host":
-        await StandaloneDemo.RunHostAsync(remote, port, lt, raw, cts.Token);
+        await StandaloneDemo.RunHostAsync(remote, port, 5, raw, cts.Token);
         break;
 
     default:

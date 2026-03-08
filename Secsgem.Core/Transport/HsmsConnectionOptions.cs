@@ -5,8 +5,16 @@ namespace Secsgem.Core.Transport;
 /// </summary>
 public class HsmsConnectionOptions
 {
-    /// <summary>Remote host address. Used in <see cref="HsmsConnectionMode.Active"/> mode.</summary>
-    public string Host { get; set; } = "127.0.0.1";
+    /// <summary>
+    /// Remote address to connect to. Used in <see cref="HsmsConnectionMode.Active"/> mode only.
+    /// </summary>
+    public string RemoteAddress { get; set; } = "127.0.0.1";
+
+    /// <summary>
+    /// Local IP address to bind to. Used in <see cref="HsmsConnectionMode.Passive"/> mode only.
+    /// Defaults to <c>0.0.0.0</c> (all interfaces). Set to a specific IP to restrict which NIC accepts connections.
+    /// </summary>
+    public string LocalAddress { get; set; } = "0.0.0.0";
 
     /// <summary>TCP port number.</summary>
     public int Port { get; set; } = 5000;

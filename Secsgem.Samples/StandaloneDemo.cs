@@ -11,14 +11,14 @@ internal static class StandaloneDemo
     /// Runs a Passive (Equipment) endpoint that listens for incoming connections.
     /// Responds to all HSMS control messages automatically.
     /// </summary>
-    public static async Task RunEquipmentAsync(int port, bool logRawFrames, CancellationToken ct)
+    public static async Task RunEquipmentAsync(string address, int port, bool logRawFrames, CancellationToken ct)
     {
-        Console.WriteLine($"[Equipment] Passive — listening on port {port}");
+        Console.WriteLine($"[Equipment] Passive — started listening on {address}:{port}");
         Console.WriteLine("Press Ctrl+C to stop.\n");
 
         var options = new HsmsConnectionOptions
         {
-            Host = "0.0.0.0",
+            LocalAddress = address,
             Port = port,
             Mode = HsmsConnectionMode.Passive
         };
@@ -39,15 +39,15 @@ internal static class StandaloneDemo
     /// Runs an Active (Host) endpoint that connects to the remote equipment.
     /// Sends LINKTEST.req periodically once Selected.
     /// </summary>
-    public static async Task RunHostAsync(string host, int port, int linktestIntervalSeconds, bool logRawFrames, CancellationToken ct)
+    public static async Task RunHostAsync(string remoteAddress, int port, int linktestIntervalSeconds, bool logRawFrames, CancellationToken ct)
     {
-        Console.WriteLine($"[Host] Active — connecting to {host}:{port}");
+        Console.WriteLine($"[Host] Active — connecting to {remoteAddress}:{port}");
         Console.WriteLine($"[Host] LINKTEST interval: {linktestIntervalSeconds}s");
         Console.WriteLine("Press Ctrl+C to stop.\n");
 
         var options = new HsmsConnectionOptions
         {
-            Host = host,
+            RemoteAddress = remoteAddress,
             Port = port,
             Mode = HsmsConnectionMode.Active,
             T5_ConnectSeparationTimeout = 5
