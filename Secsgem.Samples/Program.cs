@@ -32,7 +32,7 @@ switch (mode.ToLowerInvariant())
         break;
 
     case "host":
-        await StandaloneDemo.RunHostAsync(remote, port, 5, raw, cts.Token);
+        await StandaloneDemo.RunHostAsync(remote, port, raw, cts.Token);
         break;
 
     default:
