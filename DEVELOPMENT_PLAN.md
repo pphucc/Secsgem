@@ -32,18 +32,18 @@
 
 ## 🔲 Phase 2 – SECS-II Data Model & Codec (E5)
 
-- [ ] `SecsFormat` enum (all 15 format codes)
-- [ ] `SecsItem` base class + all 15 concrete types
-  - [ ] `SecsList`, `SecsBoolean`
-  - [ ] `SecsBinary`, `SecsAscii`, `SecsJis`
-  - [ ] `SecsInt1/2/4/8`, `SecsUint1/2/4/8`
-  - [ ] `SecsFloat4`, `SecsFloat8`
-- [ ] `SecsHeader` – encode/decode (stream, function, W-bit, device ID, system bytes)
-- [ ] `SecsMessage` – compose header + root item
-- [ ] `ISecsCodec` / `SecsCodec` – encode `SecsMessage` → bytes / bytes → `SecsMessage`
-- [ ] Validation: length limits, nested structure checks
-- [ ] (Optional) SML parser & formatter
-- [ ] **Tests**: round-trip encode/decode for every item type
+- [x] `SecsFormat` enum (all 15 format codes)
+- [x] `SecsItem` base class + all 15 concrete types (supporting empty items and multiple values)
+  - [x] `SecsList`, `SecsBoolean`
+  - [x] `SecsBinary`, `SecsAscii`, `SecsJis`
+  - [x] `SecsInt1/2/4/8`, `SecsUint1/2/4/8`
+  - [x] `SecsFloat4`, `SecsFloat8`
+- [x] `SecsHeader` – encode/decode (stream, function, W-bit, device ID, system bytes, replyExpected rules)
+- [x] `SecsMessage` – compose header + root item (`SecsItem`)
+- [x] `ISecsCodec` / `SecsCodec` – encode `SecsMessage` → bytes / bytes → `SecsMessage` (big-endian per E5)
+- [ ] Validation: length limits, nested structure checks, correct ASCII/JIS encoding
+- [ ] (Optional) SML parser & formatter (text ↔ `SecsMessage`)
+- [x] **Tests**: basic round-trip encode/decode for representative item types and messages
 
 ---
 
